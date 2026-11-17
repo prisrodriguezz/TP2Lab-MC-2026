@@ -35,7 +35,8 @@ function interfazMetodos()
 
   h.orden = uicontrol(h.panelEntrada,'Style','edit','String','4', ...
     'Units','normalized','Position',[.60 .91 .34 .06], ...
-    'HorizontalAlignment','left');
+    'HorizontalAlignment','left', ...
+    'Callback',@entradaModificada);
 
   h.btnActualizar = uicontrol(h.panelEntrada,'Style','pushbutton', ...
     'String','Crear / actualizar tablas', ...
@@ -59,6 +60,7 @@ function interfazMetodos()
     'ColumnName',{'x1','x2','x3', 'x4'}, ...
     'RowName',{'E1','E2','E3','E4'}, ...
     'ColumnEditable',true(1,4), ...
+    'CellEditCallback',@entradaModificada, ...
     'FontSize',10);
 
   h.lblB = uicontrol(h.panelEntrada,'Style','text', ...
@@ -72,6 +74,7 @@ function interfazMetodos()
     'ColumnName',{'b'}, ...
     'RowName',{'E1','E2','E3','E4'}, ...
     'ColumnEditable',true, ...
+    'CellEditCallback',@entradaModificada, ...
     'FontSize',10);
 
   % Controles de interpolacion inversa
@@ -82,7 +85,8 @@ function interfazMetodos()
 
   h.cantidad = uicontrol(h.panelEntrada,'Style','edit','String','6', ...
     'Units','normalized','Position',[.60 .91 .34 .06], ...
-    'HorizontalAlignment','left');
+    'HorizontalAlignment','left', ...
+    'Callback',@entradaModificada);
 
   h.btnActualizarPuntos = uicontrol(h.panelEntrada,'Style','pushbutton', ...
     'String','Crear / actualizar tabla', ...
@@ -109,6 +113,7 @@ function interfazMetodos()
     'RowName',[], ...
     'ColumnEditable',[true true], ...
     'ColumnFormat',{'char','char'}, ...
+    'CellEditCallback',@entradaModificada, ...
     'FontSize',10);
 
   h.lblObjetivo = uicontrol(h.panelEntrada,'Style','text', ...
@@ -118,7 +123,8 @@ function interfazMetodos()
 
   h.objetivo = uicontrol(h.panelEntrada,'Style','edit','String','0,90728517', ...
     'Units','normalized','Position',[.56 .25 .38 .065], ...
-    'HorizontalAlignment','left');
+    'HorizontalAlignment','left', ...
+    'Callback',@entradaModificada);
 
   h.notaInterpolacion = uicontrol(h.panelEntrada,'Style','text', ...
     'Units','normalized','Position',[.04 .06 .90 .14], ...
@@ -236,6 +242,30 @@ function interfazMetodos()
   % FUNCIONES AUXILIARES
   % =========================================================
 
+  function q = invalidarResultados(q)
+    set(q.datos,'String','Los datos ingresados apareceran aqui.');
+    set(q.resumen,'String','El resultado del metodo aparecera aqui.');
+    set(q.analisis,'String','Aqui se mostrara el analisis del metodo.');
+    set(q.tablaPasos,'Data',{},'ColumnName',{},'RowName',{});
+    set(q.procedimiento,'String','El procedimiento aparecera aqui.');
+
+    cla(q.axes);
+    title(q.axes,'');
+    grid(q.axes,'on');
+    xlabel(q.axes,'x');
+    ylabel(q.axes,'y');
+
+    q.resultado = [];
+    q.ultimaEntrada = [];
+  endfunction
+
+  function entradaModificada(~,~)
+    q = guidata(fig);
+    q = invalidarResultados(q);
+    guidata(fig,q);
+    set(q.estado,'String','Datos modificados. Calcule nuevamente.');
+  endfunction
+
   function actualizarMetodo(~,~)
     q = guidata(fig);
     esGauss = get(q.metodo,'Value') == 1;
@@ -257,12 +287,16 @@ function interfazMetodos()
       set(q.panelEntrada,'Title','Datos para interpolacion inversa lineal');
     endif
 
+    q = invalidarResultados(q);
+    guidata(fig,q);
     set(q.estado,'String','Ingrese los datos del metodo seleccionado.');
   endfunction
 
   function crearTablaGauss(~,~)
     try
       q = guidata(fig);
+      q = invalidarResultados(q);
+      guidata(fig,q);
       n = leerEntero(q.orden,'orden del sistema',2,10);
 
       A = zeros(n,n);
@@ -296,6 +330,8 @@ function interfazMetodos()
   function crearTablaInterpolacion(~,~)
     try
       q = guidata(fig);
+      q = invalidarResultados(q);
+      guidata(fig,q);
       n = leerEntero(q.cantidad,'cantidad de puntos',2,100);
 
       datos = zeros(n,2);
@@ -383,6 +419,8 @@ function interfazMetodos()
 
     try
         q = guidata(fig);
+        q = invalidarResultados(q);
+        guidata(fig,q);
         if get(q.metodo,'Value') == 1
 
         % ==========================================
@@ -941,18 +979,7 @@ function interfazMetodos()
       set(q.objetivo,'String','4');
     endif
 
-    set(q.datos,'String','Los datos ingresados apareceran aqui.');
-    set(q.resumen,'String','El resultado del metodo aparecera aqui.');
-    set(q.analisis,'String','Aqui se mostrara el analisis del metodo.');
-    set(q.tablaPasos,'Data',{},'ColumnName',{},'RowName',{});
-    set(q.procedimiento,'String','El procedimiento aparecera aqui.');
-    cla(q.axes);
-    grid(q.axes,'on');
-    xlabel(q.axes,'x');
-    ylabel(q.axes,'y');
-
-    q.resultado = [];
-    q.ultimaEntrada = [];
+    q = invalidarResultados(q);
     guidata(fig,q);
 
     set(q.estado,'String','Campos y resultados limpiados.');
