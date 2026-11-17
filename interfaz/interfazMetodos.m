@@ -469,7 +469,7 @@ function interfazMetodos()
             endfor
 
             textoResultado{end+1} = '';
-            textoResultado{end+1} = 'Matriz final:';
+            textoResultado{end+1} = 'Matriz de presentacion [I | X]:';
             for i = 1:rows(r.matrizFinal)
               fila = sprintf('%10.8g  ', r.matrizFinal(i,:));
               textoResultado{end+1} = ['[' fila ']'];
@@ -494,7 +494,7 @@ function interfazMetodos()
             textoResultado{end+1} = 'No se obtuvo una solucion mediante el procedimiento.';
 
             textoResultado{end+1} = '';
-            textoResultado{end+1} = 'Matriz final:';
+            textoResultado{end+1} = 'Matriz al detener el procedimiento:';
             for i = 1:rows(r.matrizFinal)
               textoResultado{end+1} = mat2str(r.matrizFinal(i,:),8);
             endfor
@@ -507,55 +507,7 @@ function interfazMetodos()
         % MOSTRAR PROCEDIMIENTO GAUSS-JORDAN
         % =========================================================
 
-        textoProcedimiento = {};
-
-        % Matriz inicial
-        textoProcedimiento{end+1} = 'MATRIZ AUMENTADA INICIAL';
-        textoProcedimiento{end+1} = '';
-
-        for i = 1:rows(r.matrizInicial)
-            fila = sprintf('%10.5g ',r.matrizInicial(i,1:end-1));
-            termino = sprintf('%10.5g',r.matrizInicial(i,end));
-
-            textoProcedimiento{end+1} = ...
-                ['[ ' fila '| ' termino ' ]'];
-        endfor
-
-        textoProcedimiento{end+1} = '';
-        textoProcedimiento{end+1} = ...
-            'FORMULAS GENERALES DEL PROCEDIMIENTO';
-        textoProcedimiento{end+1} = ...
-            'Eliminacion: Ei = Ei - (aik / a1k) * E1';
-        textoProcedimiento{end+1} = ...
-            'Normalizacion: E1 = E1 / a1k';
-        textoProcedimiento{end+1} = '';
-
-        % Mostrar cada iteracion
-        for k = 1:numel(r.iteraciones)
-
-            iteracion = r.iteraciones(k);
-
-            textoProcedimiento{end+1} = ...
-                sprintf('ITERACION %d - COLUMNA %d', ...
-                        iteracion.numero,iteracion.numero);
-
-            textoProcedimiento{end+1} = ...
-                sprintf('Pivote utilizado: %.10g',iteracion.pivote);
-
-            textoProcedimiento{end+1} = 'Matriz resultante:';
-
-            M = iteracion.matriz;
-
-            for i = 1:rows(M)
-                fila = sprintf('%10.5g ',M(i,1:end-1));
-                termino = sprintf('%10.5g',M(i,end));
-
-                textoProcedimiento{end+1} = ...
-                    ['[ ' fila '| ' termino ' ]'];
-            endfor
-
-            textoProcedimiento{end+1} = '';
-        endfor
+        textoProcedimiento = formatearProcedimientoGauss(A,b,r);
 
         set(q.procedimiento,'String',textoProcedimiento);
         set(q.procedimiento,'Visible','on');
@@ -564,16 +516,19 @@ function interfazMetodos()
         % Analisis
         textoAnalisis = {
             'Se aplico el metodo de Gauss-Jordan respetando:';
-            '1. Seleccion del pivote.';
-            '2. Eliminacion de las filas restantes.';
-            '3. Normalizacion de la fila pivote.';
-            '4. Rotacion ciclica de las filas.';
+            '1. Escalado de filas y columnas.';
+            '2. Seleccion del pivote e intercambios.';
+            '3. Eliminacion de las filas restantes.';
+            '4. Normalizacion de la fila pivote.';
+            '5. Rotacion ciclica de las filas.';
             ''
         };
 
         if r.exito
             textoAnalisis{end+1} = ...
-            'El procedimiento obtuvo una matriz identidad.';
+            'La reduccion del sistema escalado obtuvo [I | Y].';
+            textoAnalisis{end+1} = ...
+            'Las variables originales X se recuperaron desde Y.';
             textoAnalisis{end+1} = ...
             'La solucion se verifico mediante A * X = b.';
         else
@@ -771,6 +726,160 @@ function interfazMetodos()
     for i = 1:rows(A)
       fila = sprintf('%10.5g ',[A(i,:) b(i)]);
       texto{end+1} = ['E',num2str(i),':  [ ',fila,']'];
+    endfor
+  endfunction
+
+  function texto = formatearProcedimientoGauss(A,b,r)
+
+    n = rows(A);
+    texto = {'1. SISTEMA DE ECUACIONES ORIGINAL'; ''};
+
+    for i = 1:n
+      ecuacion = sprintf('%.10g*x1',A(i,1));
+
+      for j = 2:n
+        if A(i,j) >= 0
+          ecuacion = [ecuacion,sprintf(' + %.10g*x%d',A(i,j),j)];
+        else
+          ecuacion = [ecuacion,sprintf(' - %.10g*x%d',abs(A(i,j)),j)];
+        endif
+      endfor
+
+      texto{end+1} = sprintf('E%d: %s = %.10g',i,ecuacion,b(i));
+    endfor
+
+    texto{end+1} = '';
+    texto{end+1} = '2. MATRIZ AUMENTADA INICIAL [A | b]';
+    texto = agregarMatrizProcedimiento(texto,r.matrizInicial);
+
+    indiceRecuperacion = numel(r.pasos) + 1;
+    for k = 1:numel(r.pasos)
+      if !isempty(strfind(r.pasos(k).descripcion, ...
+          'Recuperacion de las variables originales'))
+        indiceRecuperacion = k;
+        break;
+      endif
+    endfor
+
+    escalasColumnas = [];
+    etapaMostrada = 0;
+    numeroSeccion = 3;
+
+    for k = 2:min(indiceRecuperacion - 1,numel(r.pasos))
+      descripcion = r.pasos(k).descripcion;
+
+      if !isempty(strfind(descripcion,'Escalado inicial'))
+        escalasFilas = max(abs(A),[],2);
+        texto{end+1} = '';
+        texto{end+1} = sprintf('%d. ESCALADO INICIAL DE FILAS',numeroSeccion);
+        texto{end+1} = ['Escalas de filas = ',mat2str(escalasFilas',10)];
+        texto{end+1} = descripcion;
+        texto = agregarMatrizProcedimiento(texto,r.pasos(k).matriz);
+        numeroSeccion = numeroSeccion + 1;
+        continue;
+      endif
+
+      if !isempty(strfind(descripcion,'Escalado de columnas'))
+        matrizEscaladaFilas = r.pasos(k - 1).matriz;
+        escalasColumnas = ...
+          max(abs(matrizEscaladaFilas(:,1:n)),[],1);
+
+        texto{end+1} = '';
+        texto{end+1} = sprintf( ...
+          '%d. ESCALADO DE COLUMNAS Y VARIABLES AUXILIARES', ...
+          numeroSeccion);
+        texto{end+1} = ...
+          ['Escalas de columnas C = ',mat2str(escalasColumnas,10)];
+        texto{end+1} = 'Relacion utilizada: Yj = Cj * Xj.';
+        texto{end+1} = descripcion;
+        texto = agregarMatrizProcedimiento(texto,r.pasos(k).matriz);
+        numeroSeccion = numeroSeccion + 1;
+        continue;
+      endif
+
+      coincidencia = regexp(descripcion,'Etapa ([0-9]+):', ...
+        'tokens','once');
+
+      if !isempty(coincidencia)
+        etapa = str2double(coincidencia{1});
+
+        if etapa != etapaMostrada
+          texto{end+1} = '';
+          texto{end+1} = sprintf('%d. ETAPA %d - COLUMNA %d', ...
+            numeroSeccion,etapa,etapa);
+
+          if etapa <= numel(r.iteraciones)
+            texto{end+1} = sprintf('Pivote seleccionado: %.12g', ...
+              r.iteraciones(etapa).pivote);
+          endif
+
+          etapaMostrada = etapa;
+          numeroSeccion = numeroSeccion + 1;
+        endif
+      endif
+
+      texto{end+1} = descripcion;
+
+      if r.exito && k == indiceRecuperacion - 1
+        texto{end+1} = ...
+          'MATRIZ REDUCIDA FINAL DEL SISTEMA ESCALADO [I | Y]';
+      endif
+
+      texto = agregarMatrizProcedimiento(texto,r.pasos(k).matriz);
+    endfor
+
+    if r.exito
+      matrizReducida = r.iteraciones(end).matriz;
+      Y = matrizReducida(:,n + 1);
+
+      texto{end+1} = '';
+      texto{end+1} = sprintf( ...
+        '%d. RECUPERACION DE LAS INCOGNITAS ORIGINALES',numeroSeccion);
+      texto{end+1} = ['Y = ',mat2str(Y',10)];
+      texto{end+1} = ['C = ',mat2str(escalasColumnas,10)];
+      texto{end+1} = 'Se aplica Xj = Yj / Cj:';
+
+      for j = 1:n
+        texto{end+1} = sprintf( ...
+          'X%d = %.12g / %.12g = %.12g', ...
+          j,Y(j),escalasColumnas(j),r.solucion(j));
+      endfor
+
+      texto{end+1} = '';
+      texto{end+1} = ...
+        'MATRIZ DE PRESENTACION [I | X] (despues de recuperar X)';
+      texto{end+1} = ...
+        'La ultima columna ya no contiene Y; contiene las incognitas X.';
+      texto = agregarMatrizProcedimiento(texto,r.matrizFinal);
+
+      texto{end+1} = '';
+      texto{end+1} = sprintf('%d. SOLUCION Y COMPROBACION', ...
+        numeroSeccion + 1);
+      texto{end+1} = ['X = ',mat2str(r.solucion',10)];
+      texto{end+1} = ['A * X = ',mat2str(r.verificacion',10)];
+      texto{end+1} = ['b = ',mat2str(b',10)];
+      texto{end+1} = sprintf('Norma del residuo = %.10g', ...
+        norm(r.residuo,inf));
+      texto{end+1} = r.mensaje;
+    else
+      texto{end+1} = '';
+      texto{end+1} = sprintf('%d. PROCEDIMIENTO DETENIDO',numeroSeccion);
+      texto{end+1} = r.mensaje;
+      texto{end+1} = 'No se obtuvo ni se presenta una solucion X.';
+
+      if !isempty(r.matrizFinal)
+        texto{end+1} = 'Matriz al detener el procedimiento:';
+        texto = agregarMatrizProcedimiento(texto,r.matrizFinal);
+      endif
+    endif
+
+  endfunction
+
+  function texto = agregarMatrizProcedimiento(texto,M)
+    for i = 1:rows(M)
+      fila = sprintf('%12.6g ',M(i,1:end-1));
+      termino = sprintf('%12.6g',M(i,end));
+      texto{end+1} = ['[ ',fila,'| ',termino,' ]'];
     endfor
   endfunction
 
