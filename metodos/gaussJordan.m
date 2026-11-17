@@ -67,13 +67,13 @@ function resultado = gaussJordan(A, b)
 
     filasActivas = n - etapa + 1;
 
-    % La primera fila del orden actual es siempre la fila pivote.
-    pivote = M(1, etapa);
+    % -------------------------------------------------------
+    % PIVOTEO PARCIAL: seleccionar el mayor pivote disponible.
+    % -------------------------------------------------------
+    [mayorValor, indiceFila] = ...
+      max(abs(M(1:filasActivas, etapa)));
 
-    % -------------------------------------------------------
-    % PIVOTEO: si el pivote es nulo, intercambiar filas.
-    % -------------------------------------------------------
-    if abs(pivote) <= tolerancia
+    if mayorValor <= tolerancia
 
       if filasActivas == 1
         resultado.mensaje = ...
@@ -82,28 +82,24 @@ function resultado = gaussJordan(A, b)
         return;
       endif
 
-      [mayorValor, indiceRelativo] = ...
-        max(abs(M(2:filasActivas, etapa)));
-      indiceFila = indiceRelativo + 1;
+      resultado.mensaje = sprintf( ...
+        ['No existe un pivote valido en la etapa %d. ', ...
+         'La matriz es singular o el sistema no tiene solucion unica.'], ...
+        etapa);
+      resultado.matrizFinal = M;
+      return;
+    endif
 
-      if mayorValor <= tolerancia
-        resultado.mensaje = sprintf( ...
-          ['No existe un pivote valido en la etapa %d. ', ...
-           'La matriz es singular o el sistema no tiene solucion unica.'], ...
-          etapa);
-        resultado.matrizFinal = M;
-        return;
-      endif
-
+    if indiceFila != 1
       M([1, indiceFila], :) = M([indiceFila, 1], :);
 
       resultado = registrarPaso(resultado, ...
         sprintf(['Etapa %d: intercambio de filas. ', ...
                  'Se coloca en la primera fila el mayor pivote disponible.'], ...
                  etapa), M);
-
-      pivote = M(1, etapa);
     endif
+
+    pivote = M(1, etapa);
 
     % -------------------------------------------------------
     % ELIMINACION EN TODAS LAS FILAS RESTANTES
