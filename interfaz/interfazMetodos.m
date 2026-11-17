@@ -558,8 +558,8 @@ function interfazMetodos()
 
         datos = get(q.tablaXY,'Data');
 
-        if !iscell(datos)
-            error('La tabla debe contener datos de texto.');
+        if !iscell(datos) && !isnumeric(datos)
+            error('La tabla debe contener datos numericos o de texto.');
         endif
 
         datosNumericos = zeros(size(datos));
@@ -567,7 +567,11 @@ function interfazMetodos()
         for i = 1:rows(datos)
             for j = 1:columns(datos)
 
-                valor = datos{i,j};
+                if iscell(datos)
+                    valor = datos{i,j};
+                else
+                    valor = datos(i,j);
+                endif
 
                 if isnumeric(valor)
                     numero = valor;
