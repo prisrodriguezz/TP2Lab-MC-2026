@@ -65,6 +65,8 @@ function resultado = gaussJordan(A, b)
   % ---------------------------------------------------------
   for etapa = 1:n
 
+    filasActivas = n - etapa + 1;
+
     % La primera fila del orden actual es siempre la fila pivote.
     pivote = M(1, etapa);
 
@@ -73,14 +75,15 @@ function resultado = gaussJordan(A, b)
     % -------------------------------------------------------
     if abs(pivote) <= tolerancia
 
-      if n == 1
+      if filasActivas == 1
         resultado.mensaje = ...
           'El sistema no tiene un pivote valido: matriz singular.';
         resultado.matrizFinal = M;
         return;
       endif
 
-      [mayorValor, indiceRelativo] = max(abs(M(2:n, etapa)));
+      [mayorValor, indiceRelativo] = ...
+        max(abs(M(2:filasActivas, etapa)));
       indiceFila = indiceRelativo + 1;
 
       if mayorValor <= tolerancia
